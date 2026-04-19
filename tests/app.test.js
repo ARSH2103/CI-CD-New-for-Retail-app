@@ -1,28 +1,39 @@
-const express = require('express');
-const path = require('path');
-const app = express();
+const request = require('supertest');
+const app = require('../src/app');
 
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-const products = [
-  { id: 1, name: 'Laptop',      price: 50000, category: 'Electronics' },
-  { id: 2, name: 'Phone',       price: 20000, category: 'Electronics' },
-  { id: 3, name: 'Headphones',  price: 2000,  category: 'Accessories' },
-  { id: 4, name: 'Backpack',    price: 1500,  category: 'Accessories' },
-];
-
-app.get('/products', (req, res) => {
-  res.json(products);
+beforeAll(() => {
+  jest.spyOn(console, 'log').mockImplementation(() => {});
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+afterAll(() => {
+  console.log.mockRestore();
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+describe('Retail App API Tests', () => {
 
-module.exports = app;
+  test('GET /health returns status ok', async () => {
+    const res = await request(app).get('/health');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('ok');
+  });
+
+  test('GET /products returns array', async () => {
+    const res = await request(app).get('/products');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  test('GET /products returns correct fields', async () => {
+    const res = await request(app).get('/products');
+    const product = res.body[0];
+    expect(product).toHaveProperty('id');
+    expect(product).toHaveProperty('name');
+    expect(product).toHaveProperty('price');
+  });
+
+  test('GET /products returns at least 1 product', async () => {
+    const res = await request(app).get('/products');
+    expect(res.body.length).toBeGreaterThan(0);
+  });
+
+});
